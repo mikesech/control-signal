@@ -38,18 +38,19 @@
           </div>
           <div class="class-content">
             <p>The ControlSignal provides a simple and special signal-slot implementation.
-However, it should not be used to implement the Observer pattern per se
-because it allows the creation of hooks that return values that influence
-the owner&#39;s operations.</p>
+However, this class goes beyond the Observer pattern, allowing the slots
+to return values that ultimately influence the owner&#39;s operations.</p>
 <p>The ControlSignal is a fully asynchronous class (where it counts). The emission
 of a signal is an async operation. All of its slots must be async functions.</p>
 <p>The ControlSignal itself does not define how it handles the &quot;return&quot; values of
-the async slots. Instead, during construction, you must provide an iterator and
-initial value. These parameters are used to perform a reduce operation against
-the results from all the slot calls. Note that all slots calls are performed
-&quot;in parallel&quot; and then reduced synchronously thereafter.</p>
+the async slots. Instead, during construction, you must provide a processor.
+This function receives an array of all the slots&#39; results and has full
+control of what ultimately makes it to the emission callback.
+Note that all slots calls are performed &quot;in parallel&quot; and then processsed
+synchronously thereafter.</p>
 <p>The ControlSignal provides some class functions that create special instances
-with built-in iterators.</p>
+with built-in processors. In fact, the ControlSignal should be treated as a
+low-level class. Use the special class functions whenever possible.</p>
 
             <div class="methods">
               
@@ -57,7 +58,7 @@ with built-in iterators.</p>
                 <h3>Static Methods</h3>
                 
                 <div class="method">
-                  <h4>arrayControlSignal(arity)</h4>
+                  <h4>arrayControlSignal(paramCount)</h4>
                   <p>Builds an &quot;array&quot; ControlSignal. This ControlSignal will provide
 all the slots&#39; results in an array to the emission callback.</p>
 <p>See the ControlSignal constructor for more info.</p>
@@ -65,15 +66,16 @@ all the slots&#39; results in an array to the emission callback.</p>
                 </div>
                 
                 <div class="method">
-                  <h4>vetoControlSignal(arity)</h4>
-                  <p>Builds a &quot;veto&quot; ControlSignal. The value provided to the emission callback
-is the result of performing a boolean AND operation against all the slots&#39; results.</p>
+                  <h4>vetoControlSignal(paramCount)</h4>
+                  <p>Builds a &quot;veto&quot; ControlSignal. If all slots return true, true is given
+to the emission callback. If just one slot returns false, false results.
+In effect, each slot has &quot;veto&quot; power to force the return value to false.</p>
 <p>See the ControlSignal constructor for more info.</p>
 
                 </div>
                 
                 <div class="method">
-                  <h4>voidControlSignal(arity)</h4>
+                  <h4>voidControlSignal(paramCount)</h4>
                   <p>Builds a &quot;void&quot; ControlSignal. This ControlSignal will always provide
 null to the emission callback.</p>
 <p>See the ControlSignal constructor for more info.</p>
@@ -87,38 +89,23 @@ null to the emission callback.</p>
                 <h3>Instance Methods</h3>
                 
                 <div class="method">
-                  <h4>constructor(@arity, @iterator, @initialValue)</h4>
+                  <h4>constructor(@paramCount, @processor)</h4>
                   <p>Constructs a new ControlSignal.</p>
 <h5 id="arguments">Arguments</h5>
-<p><code>@arity</code><br>The arity of the signal, including the callback parameter. For example,
-if the slots will take no parameters except for the callback, this should
-be 1. The number of parameters given to emit and the arity of the slots
-will be checked against this value; if they do not match, an exception
-will be thrown as soon as possible.</p>
-<p>There are two special values for this parameter. 0 indicates a varidaic signal;
-slots must declare no parameters (instead using the special arguments variable),
-and the signal will allow any number of parameters to be emitted. -1 disables
-all arity checking. This should be used with extreme caution since an arity mismatch
-will cause the callback to get lost and most likely cause the application to malfunction
-horribly.</p>
-<p><code>@iterator</code><br>The iterator function to be used to reduce all the results from the slots. This
-function is synchronous and matches the iterator used by <code>Array.prototype.reduce</code>.
-It is given four parameters, of which the last two are more or less irrelevant:</p>
-<ul>
-<li>The previous value of the accumulator.</li>
-<li>The current value being processed.</li>
-<li>The index of the slot whose result is currently being processed.</li>
-<li>The array of slot results currently being processed.</li>
-</ul>
-<p><code>@initialValue</code><br>The initial value used during the reduce stage. It is mandatory because it also functions
-as the default value provided to the emission callback when there are no slots.</p>
+<p><code>@paramCount</code><br>The number of parameters the signal will emit, excluding the obligatory callback.
+A ControlSignal cannot be variadic. This number must be 0 or greater.s</p>
+<p><code>@processor</code><br>This function is called after all the slots have been executed. It is given an array of
+all the slots&#39; results. Whatever the processor function returns is then given to the
+emission callback. Note that this function is executed synchronously. It is given only
+one parameter. If it throws an exception, it will be given to the emission callback as
+the error.</p>
 <h5 id="exceptions">Exceptions</h5>
-<p>Throws RangeError if the arity is less than -1.</p>
+<p>Throws RangeError if the <code>paramCount</code> is less than 0.</p>
 
                 </div>
                 
                 <div class="method">
-                  <h4>addSlot(slot)</h4>
+                  <h4>connect(slot)</h4>
                   <p>Registers a persistent, asynchronous slot.
 If the slot was already registered, it will be registered
 again and, therefore, invoked multiple times for each emission.</p>
@@ -127,12 +114,11 @@ again and, therefore, invoked multiple times for each emission.</p>
 to this function will always be the asynchronous callback which
 must be called when the listener is done. The callback takes
 two parameters: the error, if any, and the result. The result
-is given to the emission callback depending on the signal&#39;s
-reduce iterator.</p>
-<p>The arity of the slot must match the arity of
-the signal. If the signal&#39;s arity is 0, then the slot must be
-variadic and declare no parameters. If the signal&#39;s arity is -1,
-all arity checking is disabled.</p>
+is given to the emission callback after being processed by the
+signal&#39;s processor.</p>
+<p>The arity of the slot must match the <code>paramCount</code> of
+the signal, taking the obligatory callback into consideration.
+(That is, the arity must equal <code>paramcount + 1</code>.)</p>
 <h5 id="returns">Returns</h5>
 <p>null</p>
 <h5 id="exceptions">Exceptions</h5>
@@ -142,20 +128,20 @@ above).</p>
                 </div>
                 
                 <div class="method">
-                  <h4>removeSlot(slot)</h4>
+                  <h4>disconnect(slot)</h4>
                   <p>Removes a given slot.</p>
 <p>If the slot was registered multiple times, only one
 registration will be removed. The slot will continue
 to be invoked by the other registrations.</p>
 <h5 id="arguments">Arguments</h5>
-<p><code>slot</code><br>The slot as provided to <code>addSlot</code>. Must be a function.</p>
+<p><code>slot</code><br>The slot as provided to <code>connect</code>. Must be a function.</p>
 <h5 id="returns">Returns</h5>
 <p>True if a slot was removed; false otherwise.</p>
 
                 </div>
                 
                 <div class="method">
-                  <h4>slotCount()</h4>
+                  <h4>receivers()</h4>
                   <p>Gets the number of slots registered.</p>
 <h5 id="returns">Returns</h5>
 <p>The number of slots registered.
@@ -170,9 +156,7 @@ included multiple times in the count.</p>
 <h5 id="arguments">Arguments</h5>
 <p><code>args...</code><br>Arguments to pass to the slots, excluding the callback, which
 is automatically provided for you. The number of arguments must therefore
-be equal to the signal&#39;s arity <em>minus 1</em>.
-However, if the arity if 0 or -1 (indicating a variadic function or disabled
-checking, respectively), the number of arguments is not checked.</p>
+be equal to the signal&#39;s <code>paramCount</code>.</p>
 <p><code>callback(error, value)</code><br>The async callback. <code>error</code> will be the first error encountered
 or <code>null</code> if none were. The <code>value</code> will be the result of the
 reduce operation against all the slots&#39; results unless there
@@ -181,7 +165,7 @@ is an error, in which case it will be null.</p>
 <p>This is an asynchronous function. The results are provided to the
 callback. However, the function itself returns null.</p>
 <h5 id="exceptions">Exceptions</h5>
-<p>Throws Error if the number of arguments does not match the arity
+<p>Throws Error if the number of arguments does not equal the <code>paramCount</code>
 (see the definition of <code>args...</code> above).</p>
 
                 </div>
