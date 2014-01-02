@@ -18,15 +18,15 @@ describe 'ControlSignal', ->
 
     describe 'empty', ->
       it 'should have no slots at first', ->
-        assert.equal cs.slotCount(), 0
+        assert.equal cs.receivers(), 0
       it 'should return false when removing an unregistered specific slot', ->
-        assert !cs.removeSlot(->), "should return false and do nothing else when removing unregistered slot"
+        assert !cs.disconnect(->), "should return false and do nothing else when removing unregistered slot"
       it 'should throw exception when adding slot too few parameters', ->
         assert.throws ->
-          cs.addSlot (c) ->
+          cs.connect (c) ->
       it 'should throw exception when adding slot too many parameters', ->
         assert.throws ->
-          cs.addSlot (a,b,c) ->
+          cs.connect (a,b,c) ->
 
     describe 'emission', ->
       slotFired = undefined
@@ -35,10 +35,10 @@ describe 'ControlSignal', ->
         callback null, flag
       beforeEach ->
         slotFired = false
-        cs.addSlot slot
+        cs.connect slot
 
       it 'should have the correct slot count', ->
-        assert.equal cs.slotCount(), 1
+        assert.equal cs.receivers(), 1
     
       it 'should fire slots when emitted', (done) ->
         cs.emit false, (error, results) ->
@@ -55,7 +55,7 @@ describe 'ControlSignal', ->
           cs.emit 0, 1, done
 
       it 'should not fire after slot is removed', (done) ->
-        assert cs.removeSlot slot, "should return true when removing registered slot"
+        assert cs.disconnect slot, "should return true when removing registered slot"
         cs.emit false, (error, results) ->
           assert.ifError error
           assert.ok !slotFired
@@ -63,8 +63,8 @@ describe 'ControlSignal', ->
 
       it 'should give callback an error if one slot erred', (done) ->
         originalError = new Error "hello"
-        cs.addSlot (flag, callback) -> callback originalError
-        assert.equal cs.slotCount(), 2
+        cs.connect (flag, callback) -> callback originalError
+        assert.equal cs.receivers(), 2
         cs.emit false, (error, results) ->
           assert.deepEqual error, originalError
           assert !results?, "results should be null if there is an error"
@@ -83,13 +83,13 @@ describe 'ControlSignal', ->
     cs = undefined
     beforeEach -> 
       cs = ControlSignal.arrayControlSignal 2    
-      cs.addSlot (flag, callback) ->
+      cs.connect (flag, callback) ->
         slotFired = true
         callback null, flag
 
     it 'should give callback array of all slots return values', (done) ->
-      cs.addSlot (flag, callback) -> callback(null, "hello")
-      assert.equal cs.slotCount(), 2
+      cs.connect (flag, callback) -> callback(null, "hello")
+      assert.equal cs.receivers(), 2
       cs.emit false, (error, results) ->
         assert.ifError error
         assert.deepEqual results, [false, "hello"]
@@ -112,7 +112,7 @@ describe 'ControlSignal', ->
       cs = undefined
       beforeEach -> 
         cs = ControlSignal.vetoControlSignal 2    
-        cs.addSlot (flag, callback) ->
+        cs.connect (flag, callback) ->
           callback null, flag
 
       it 'should give the boolean AND of all the slot results', (done) ->
@@ -128,7 +128,7 @@ describe 'ControlSignal', ->
               assert.equal result, true
               stepDone()
           (stepDone) ->
-            cs.addSlot (flag, callback) ->
+            cs.connect (flag, callback) ->
               callback null, true
             stepDone()
           (stepDone) ->
@@ -142,7 +142,7 @@ describe 'ControlSignal', ->
               assert.equal result, true
               stepDone()
           (stepDone) ->
-            cs.addSlot (flag, callback) ->
+            cs.connect (flag, callback) ->
               callback null, false
             stepDone()
           (stepDone) ->
@@ -169,7 +169,7 @@ describe 'ControlSignal', ->
       cs = undefined
       beforeEach -> 
         cs = ControlSignal.voidControlSignal 2    
-        cs.addSlot (flag, callback) ->
+        cs.connect (flag, callback) ->
           callback null, flag
 
       it 'should result in null with one slot', (done) ->
@@ -179,7 +179,7 @@ describe 'ControlSignal', ->
           done()
 
       it 'should result in null with two slots', (done) ->
-        cs.addSlot (flag, callback) ->
+        cs.connect (flag, callback) ->
           callback null, flag
         cs.emit true, (error, result) ->
           assert.ifError error

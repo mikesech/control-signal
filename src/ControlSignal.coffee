@@ -61,7 +61,7 @@ class ControlSignal
     throw new RangeError "ControlSignal arity must be greater or equal to -1" if @arity < -1
     @_slots = []
 
-  addSlot: (slot) ->
+  connect: (slot) ->
     ###
     Registers a persistent, asynchronous slot.
     If the slot was already registered, it will be registered
@@ -94,7 +94,7 @@ class ControlSignal
     @_slots.push slot
     null
 
-  removeSlot: (slot) ->
+  disconnect: (slot) ->
     ###
     Removes a given slot.
 
@@ -104,7 +104,7 @@ class ControlSignal
 
     ##\##\# Arguments
     `slot`  
-    The slot as provided to `addSlot`. Must be a function.
+    The slot as provided to `connect`. Must be a function.
 
     ##\##\# Returns
     True if a slot was removed; false otherwise.
@@ -115,7 +115,7 @@ class ControlSignal
         return true
     false
 
-  slotCount: ->
+  receivers: ->
     ###
     Gets the number of slots registered.
     
