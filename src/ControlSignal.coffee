@@ -168,9 +168,8 @@ class ControlSignal
         # to throw exceptions.
         try
           result = slotsResults.reduce @iterator, @initialValue
-          callback null, result
-        catch e
-          callback e, null
+        catch emissionError
+        callback emissionError, result
     null
 
   @arrayControlSignal: (arity) ->
