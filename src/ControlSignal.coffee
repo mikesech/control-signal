@@ -29,24 +29,14 @@ class ControlSignal
   low-level class. Use the special class functions whenever possible.
   ###
 
-  constructor: (@arity, @processor) ->
+  constructor: (@paramCount, @processor) ->
     ###
     Constructs a new ControlSignal.
 
     ##\##\# Arguments
-    `@arity`  
-    The arity of the signal, including the callback parameter. For example,
-    if the slots will take no parameters except for the callback, this should
-    be 1. The number of parameters given to emit and the arity of the slots
-    will be checked against this value; if they do not match, an exception
-    will be thrown as soon as possible.
-
-    There are two special values for this parameter. 0 indicates a varidaic signal;
-    slots must declare no parameters (instead using the special arguments variable),
-    and the signal will allow any number of parameters to be emitted. -1 disables
-    all arity checking. This should be used with extreme caution since an arity mismatch
-    will cause the callback to get lost and most likely cause the application to malfunction
-    horribly.
+    `@paramCount`  
+    The number of parameters the signal will emit, excluding the obligatory callback.
+    A ControlSignal cannot be variadic. This number must be 0 or greater.s
 
     `@processor`  
     This function is called after all the slots have been executed. It is given an array of
@@ -56,9 +46,9 @@ class ControlSignal
     the error.
 
     ##\##\# Exceptions
-    Throws RangeError if the arity is less than -1.
+    Throws RangeError if the `paramCount` is less than 0.
     ###
-    throw new RangeError "ControlSignal arity must be greater or equal to -1" if @arity < -1
+    throw new RangeError "ControlSignal paramCount must be greater or equal to 0" if @paramCount < 0
     @_slots = []
 
   connect: (slot) ->
@@ -76,10 +66,9 @@ class ControlSignal
     is given to the emission callback after being processed by the
     signal's processor.
 
-    The arity of the slot must match the arity of
-    the signal. If the signal's arity is 0, then the slot must be
-    variadic and declare no parameters. If the signal's arity is -1,
-    all arity checking is disabled.
+    The arity of the slot must match the `paramCount` of
+    the signal, taking the obligatory callback into consideration.
+    (That is, the arity must equal `paramcount + 1`.)
 
     ##\##\# Returns
     null
@@ -89,8 +78,8 @@ class ControlSignal
     above).
 
     ###
-    if slot.length != @arity && @arity >= 0
-      throw new Error "slot's arity does not match signal's (#{slot.length} != #{@arity} including callback)"
+    if slot.length != @paramCount + 1 # +1 for callback
+      throw new Error "slot's arity does not match signal's (#{slot.length-1} != #{@paramCount} excluding callback)"
     @_slots.push slot
     null
 
@@ -134,9 +123,7 @@ class ControlSignal
     `args...`  
     Arguments to pass to the slots, excluding the callback, which
     is automatically provided for you. The number of arguments must therefore
-    be equal to the signal's arity *minus 1*.
-    However, if the arity if 0 or -1 (indicating a variadic function or disabled
-    checking, respectively), the number of arguments is not checked.
+    be equal to the signal's `paramCount`.
 
     `callback(error, value)`  
     The async callback. `error` will be the first error encountered
@@ -149,11 +136,11 @@ class ControlSignal
     callback. However, the function itself returns null.
 
     ##\##\# Exceptions
-    Throws Error if the number of arguments does not match the arity
+    Throws Error if the number of arguments does not equal the `paramCount`
     (see the definition of `args...` above).
     ###
-    if arguments.length != @arity && @arity > 0
-      throw new Error "incorrect number of arguments provided (got #{arguments.length}, expected #{@arity} including callback)"
+    if arguments.length != @paramCount + 1
+      throw new Error "incorrect number of arguments provided (got #{arguments.length-1}, expected #{@paramCount} excluding callback)"
     async.map @_slots, (slot, iteratorCallback) ->
       slot args..., iteratorCallback
     , (error, slotsResults) =>
@@ -168,32 +155,32 @@ class ControlSignal
         callback emissionError, result
     null
 
-  @arrayControlSignal: (arity) ->
+  @arrayControlSignal: (paramCount) ->
     ###
     Builds an "array" ControlSignal. This ControlSignal will provide
     all the slots' results in an array to the emission callback.
 
     See the ControlSignal constructor for more info.
     ###
-    new ControlSignal arity, (slotsResults) -> slotsResults
+    new ControlSignal paramCount, (slotsResults) -> slotsResults
 
-  @vetoControlSignal: (arity) ->
+  @vetoControlSignal: (paramCount) ->
     ###
     Builds a "veto" ControlSignal. The value provided to the emission callback
     is the result of performing a boolean AND operation against all the slots' results.
 
     See the ControlSignal constructor for more info.
     ###
-    new ControlSignal arity, (slotsResults) ->
+    new ControlSignal paramCount, (slotsResults) ->
       slotsResults.every (x) -> x
 
-  @voidControlSignal: (arity) ->
+  @voidControlSignal: (paramCount) ->
     ###
     Builds a "void" ControlSignal. This ControlSignal will always provide
     null to the emission callback.
 
     See the ControlSignal constructor for more info.
     ###
-    new ControlSignal arity, -> null
+    new ControlSignal paramCount, -> null
 
 module.exports = ControlSignal

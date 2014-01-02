@@ -8,13 +8,13 @@ describe 'ControlSignal', ->
   describe 'generic functionality', ->
 
     cs = undefined
-    beforeEach -> cs = new ControlSignal 2, ->
+    beforeEach -> cs = new ControlSignal 1, ->
     # processor is meaningless since we don't care about the results in this section
 
     describe 'constructor', ->
-      it 'should throw if given an arity of less than -1', ->
-        assert.doesNotThrow -> new ControlSignal -1
-        assert.throws -> new ControlSignal -2
+      it 'should throw if given an arity of less than 0', ->
+        assert.doesNotThrow -> new ControlSignal 0
+        assert.throws -> new ControlSignal -1
 
     describe 'empty', ->
       it 'should have no slots at first', ->
@@ -82,7 +82,7 @@ describe 'ControlSignal', ->
 
     cs = undefined
     beforeEach -> 
-      cs = ControlSignal.arrayControlSignal 2    
+      cs = ControlSignal.arrayControlSignal 1
       cs.connect (flag, callback) ->
         slotFired = true
         callback null, flag
@@ -100,7 +100,7 @@ describe 'ControlSignal', ->
     describe 'no slots', ->
       cs = undefined
       beforeEach -> 
-        cs = ControlSignal.vetoControlSignal 2    
+        cs = ControlSignal.vetoControlSignal 1
 
       it 'should default to true', (done) ->
         cs.emit null, (error, result) ->
@@ -111,7 +111,7 @@ describe 'ControlSignal', ->
     describe 'slots', ->
       cs = undefined
       beforeEach -> 
-        cs = ControlSignal.vetoControlSignal 2    
+        cs = ControlSignal.vetoControlSignal 1
         cs.connect (flag, callback) ->
           callback null, flag
 
@@ -157,7 +157,7 @@ describe 'ControlSignal', ->
     describe 'no slots', ->
       cs = undefined
       beforeEach -> 
-        cs = ControlSignal.voidControlSignal 2    
+        cs = ControlSignal.voidControlSignal 1
 
       it 'should result in null', (done) ->
         cs.emit null, (error, result) ->
@@ -168,7 +168,7 @@ describe 'ControlSignal', ->
     describe 'slots', ->
       cs = undefined
       beforeEach -> 
-        cs = ControlSignal.voidControlSignal 2    
+        cs = ControlSignal.voidControlSignal 1
         cs.connect (flag, callback) ->
           callback null, flag
 
