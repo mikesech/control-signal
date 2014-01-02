@@ -18,16 +18,18 @@ class ControlSignal
   of a signal is an async operation. All of its slots must be async functions.
 
   The ControlSignal itself does not define how it handles the "return" values of
-  the async slots. Instead, during construction, you must provide an iterator and
-  initial value. These parameters are used to perform a reduce operation against
-  the results from all the slot calls. Note that all slots calls are performed
-  "in parallel" and then reduced synchronously thereafter.
+  the async slots. Instead, during construction, you must provide a processor.
+  This function receives an array of all the slots' results and has full
+  control of what ultimately makes it to the emission callback.
+  Note that all slots calls are performed "in parallel" and then processsed
+  synchronously thereafter.
 
   The ControlSignal provides some class functions that create special instances
-  with built-in iterators.
+  with built-in processors. In fact, the ControlSignal should be treated as a
+  low-level class. Use the special class functions whenever possible.
   ###
 
-  constructor: (@arity, @iterator, @initialValue) ->
+  constructor: (@arity, @processor) ->
     ###
     Constructs a new ControlSignal.
 
@@ -46,18 +48,12 @@ class ControlSignal
     will cause the callback to get lost and most likely cause the application to malfunction
     horribly.
 
-    `@iterator`  
-    The iterator function to be used to reduce all the results from the slots. This
-    function is synchronous and matches the iterator used by `Array.prototype.reduce`.
-    It is given four parameters, of which the last two are more or less irrelevant:
-      * The previous value of the accumulator.
-      * The current value being processed.
-      * The index of the slot whose result is currently being processed.
-      * The array of slot results currently being processed.
-
-    `@initialValue`  
-    The initial value used during the reduce stage. It is mandatory because it also functions
-    as the default value provided to the emission callback when there are no slots.
+    `@processor`  
+    This function is called after all the slots have been executed. It is given an array of
+    all the slots' results. Whatever the processor function returns is then given to the
+    emission callback. Note that this function is executed synchronously. It is given only
+    one parameter. If it throws an exception, it will be given to the emission callback as
+    the error.
 
     ##\##\# Exceptions
     Throws RangeError if the arity is less than -1.
@@ -77,8 +73,8 @@ class ControlSignal
     to this function will always be the asynchronous callback which
     must be called when the listener is done. The callback takes
     two parameters: the error, if any, and the result. The result
-    is given to the emission callback depending on the signal's
-    reduce iterator.
+    is given to the emission callback after being processed by the
+    signal's processor.
 
     The arity of the slot must match the arity of
     the signal. If the signal's arity is 0, then the slot must be
@@ -164,10 +160,10 @@ class ControlSignal
       if error?
         callback error, null
       else
-        # Since the iterator is not an async function, it's presumably allowed
+        # Since the processor is not an async function, it's presumably allowed
         # to throw exceptions.
         try
-          result = slotsResults.reduce @iterator, @initialValue
+          result = @processor slotsResults
         catch emissionError
         callback emissionError, result
     null
@@ -179,9 +175,7 @@ class ControlSignal
 
     See the ControlSignal constructor for more info.
     ###
-    new ControlSignal arity, (previousValue, currentValue) ->
-      previousValue.concat [currentValue]
-    , []
+    new ControlSignal arity, (slotsResults) -> slotsResults
 
   @vetoControlSignal: (arity) ->
     ###
@@ -190,9 +184,8 @@ class ControlSignal
 
     See the ControlSignal constructor for more info.
     ###
-    new ControlSignal arity, (previousValue, currentValue) ->
-      previousValue && currentValue
-    , true
+    new ControlSignal arity, (slotsResults) ->
+      slotsResults.every (x) -> x
 
   @voidControlSignal: (arity) ->
     ###
@@ -201,6 +194,6 @@ class ControlSignal
 
     See the ControlSignal constructor for more info.
     ###
-    new ControlSignal arity, (-> null), null
+    new ControlSignal arity, -> null
 
 module.exports = ControlSignal

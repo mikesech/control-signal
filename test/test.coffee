@@ -9,7 +9,7 @@ describe 'ControlSignal', ->
 
     cs = undefined
     beforeEach -> cs = new ControlSignal 2, ->
-    # iterator is meaningless since we don't care about the results in this section
+    # processor is meaningless since we don't care about the results in this section
 
     describe 'constructor', ->
       it 'should throw if given an arity of less than -1', ->
@@ -70,9 +70,9 @@ describe 'ControlSignal', ->
           assert !results?, "results should be null if there is an error"
           done()
 
-      it 'should give callback an error if the iterator threw one', (done)->
+      it 'should give callback an error if the processor threw one', (done)->
         originalError = new Error "an error occurred"
-        cs.iterator = -> throw originalError
+        cs.processor = -> throw originalError
         cs.emit false, (error, results) ->
           assert.deepEqual error, originalError
           assert !results?, "results should be null if there is an error"
