@@ -10,9 +10,8 @@ You should really be looking at that instead!
 class ControlSignal
   ###
   The ControlSignal provides a simple and special signal-slot implementation.
-  However, it should not be used to implement the Observer pattern per se
-  because it allows the creation of hooks that return values that influence
-  the owner's operations.
+  However, this class goes beyond the Observer pattern, allowing the slots
+  to return values that ultimately influence the owner's operations.
 
   The ControlSignal is a fully asynchronous class (where it counts). The emission
   of a signal is an async operation. All of its slots must be async functions.
@@ -166,8 +165,9 @@ class ControlSignal
 
   @vetoControlSignal: (paramCount) ->
     ###
-    Builds a "veto" ControlSignal. The value provided to the emission callback
-    is the result of performing a boolean AND operation against all the slots' results.
+    Builds a "veto" ControlSignal. If all slots return true, true is given
+    to the emission callback. If just one slot returns false, false results.
+    In effect, each slot has "veto" power to force the return value to false.
 
     See the ControlSignal constructor for more info.
     ###
