@@ -1,0 +1,23 @@
+{
+  "name": "control-signal",
+  "version": "0.0.1",
+  "description": "Signals that control!",
+  "contributors": [
+    "Michael Sechooler <michael@ifttt.com>"
+  ],
+  "private": true,
+  "engines": {
+    "node": ">=0.10.5",
+    "npm": ">=1.2.18"
+  },
+  "dependencies": {
+    "underscore": ">=1.4.4",
+    "async": ">=0.2.6"
+  },
+  "devDependencies": {
+    "mocha": "",
+    "coffee-script": ">=1.5.0",
+    "coffeedoc": ""
+  },
+  "main": "./lib/ControlSignal"
+}
